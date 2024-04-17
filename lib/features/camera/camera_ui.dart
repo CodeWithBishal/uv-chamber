@@ -362,7 +362,7 @@ class _CameraPageState extends State<CameraPage>
   void pingServer() async {
     channel = IOWebSocketChannel.connect(
       wsUrl,
-      connectTimeout: Duration(
+      connectTimeout: const Duration(
         seconds: 2,
       ),
       // Replace this with your WebSocket URL
@@ -371,14 +371,33 @@ class _CameraPageState extends State<CameraPage>
       await channel.ready;
     } catch (e) {
       var snackBar = SnackBar(
-        content: Text('No device found, Capture using Mobile?'),
+        content: const Text('No device found, Capture using Mobile?'),
         action: SnackBarAction(
           label: "Yes",
           onPressed: () async {
-            final ImagePicker _picker = ImagePicker();
-            final XFile? photo = await _picker.pickImage(
+            final ImagePicker picker = ImagePicker();
+            final XFile? photo = await picker
+                .pickImage(
               source: ImageSource.camera,
-            );
+            )
+                .catchError((onError) {
+              if (onError.toString().contains("camera_access_denied")) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      "Allow Camera Usage!",
+                    ),
+                    action: SnackBarAction(
+                        label: "Settings",
+                        onPressed: () {
+                          OpenSettings.openAppSetting();
+                        }),
+                  ),
+                );
+              }
+              return null;
+            });
+            if (photo?.path == null || !mounted) return;
             Navigator.push(
               context,
               CupertinoPageRoute(
@@ -392,6 +411,7 @@ class _CameraPageState extends State<CameraPage>
           },
         ),
       );
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }

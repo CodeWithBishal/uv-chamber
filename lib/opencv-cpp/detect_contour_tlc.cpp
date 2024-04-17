@@ -4,8 +4,18 @@
 #include <iomanip>
 using namespace cv;
 
-void detect_contour_tlc(char *path) {
+bool detect_contour_tlc(char *path) {
     Mat img = imread(path);
+
+    //Check for black color
+    Mat hsvImage;
+    cvtColor(img, hsvImage, COLOR_BGR2HSV);
+    Mat mask;
+    inRange(hsvImage, Scalar(0, 0, 0), Scalar(180, 255, 50), mask); // Threshold for black color
+    if (countNonZero(mask) > 0) {
+        return false; // Return false if black color is found
+    }
+
     resize(img, img, Size(256, 500));
     Mat grayImage, blurredImage;
     cvtColor(img, grayImage, COLOR_BGR2GRAY);
@@ -121,4 +131,5 @@ void detect_contour_tlc(char *path) {
     }
 
     imwrite(path, img);
+    return true;
 }

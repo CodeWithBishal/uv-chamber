@@ -6,6 +6,7 @@ import 'dart:io';
 // import 'package:flutter/cupertino.dart';
 
 import 'package:edge_detection/edge_detection.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path2;
@@ -59,7 +60,8 @@ class _ImageProcessingState extends State<ImageProcessing> {
       androidCropReset: 'Reset',
     );
     final autoCroppedFile = File(savePath);
-    if (!cropped || !autoCroppedFile.existsSync()) {
+    if (!mounted) return;
+    if (!cropped || !autoCroppedFile.existsSync() && mounted) {
       Navigator.pop(context);
     } else {
       calculateTLC(CroppedFile(savePath));
@@ -115,13 +117,37 @@ class _ImageProcessingState extends State<ImageProcessing> {
   void calculateTLC(CroppedFile croppedFile) {
     //ffi
     final imagePath = croppedFile.path.toNativeUtf8();
-    final imageFfi = dylib.lookupFunction<Void Function(Pointer<Utf8>),
-        void Function(Pointer<Utf8>)>('detect_contour_tlc');
-    imageFfi(imagePath);
-    setState(() {
-      _processedImage = File(imagePath.toDartString());
-    });
-    saveImage(imagePath.toDartString());
+    final imageFfi = dylib.lookupFunction<Bool Function(Pointer<Utf8>),
+        bool Function(Pointer<Utf8>)>('detect_contour_tlc');
+    if (imageFfi(imagePath)) {
+      setState(() {
+        _processedImage = File(imagePath.toDartString());
+      });
+      saveImage(imagePath.toDartString());
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            "Please crop the image properly and leave no margins! Redirecting...",
+          ),
+          action: SnackBarAction(
+            label: "Crop",
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => ImageProcessing(
+                    imageFile: XFile(croppedFile.path),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
 //ffi
   }
 
@@ -220,8 +246,8 @@ class _ImageProcessingState extends State<ImageProcessing> {
                 children: [
                   LoadingAnimationWidget.threeArchedCircle(
                       color: Colors.black87, size: 36),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
                     child: Text(
                       "Processing Image...",
                       textAlign: TextAlign.center,
