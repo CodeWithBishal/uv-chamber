@@ -108,8 +108,14 @@ class _ImageProcessingState extends State<ImageProcessing> {
 
   Future<String> handleNonJPGImage(String imgPath) async {
     final image = img.decodeImage(File(imgPath).readAsBytesSync());
-    File(path2.setExtension(imgPath, ".jpg"))
-        .writeAsBytesSync(img.encodeJpg(image!));
+    if (image == null) {
+      Navigator.pop(context);
+    }
+    File(path2.setExtension(imgPath, ".jpg")).writeAsBytesSync(
+      img.encodeJpg(
+        image!,
+      ),
+    );
 
     return path2.setExtension(imgPath, ".jpg");
   }

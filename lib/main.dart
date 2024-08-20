@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:chamber/features/camera/raspberry.dart';
 import 'package:chamber/features/saved/saved_images.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -51,7 +52,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SavedImages(),
+      home: const RaspberryVideo(),
     );
   }
 }

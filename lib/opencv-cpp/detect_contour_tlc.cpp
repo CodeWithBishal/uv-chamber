@@ -1,135 +1,152 @@
 #include <opencv2/opencv.hpp>
+#include <vector>
+#include <cmath>
 #include <numeric>
-#include <sstream>
-#include <iomanip>
+
 using namespace cv;
+using namespace std;
 
-bool detect_contour_tlc(char *path) {
-    Mat img = imread(path);
+Mat cropImage(const Mat& image, double leftPct, double rightPct, double topPct, double bottomPct) {
+    int height = image.rows;
+    int width = image.cols;
+    int left = static_cast<int>(width * leftPct);
+    int right = static_cast<int>(width * rightPct);
+    int top = static_cast<int>(height * topPct);
+    int bottom = static_cast<int>(height * bottomPct);
+    return image(Range(top, height - bottom), Range(left, width - right));
+}
 
-    //Check for black color
-    Mat hsvImage;
-    cvtColor(img, hsvImage, COLOR_BGR2HSV);
-    Mat mask;
-    inRange(hsvImage, Scalar(0, 0, 0), Scalar(180, 255, 50), mask); // Threshold for black color
-    if (countNonZero(mask) > 0) {
-        return false; // Return false if black color is found
-    }
-
-    resize(img, img, Size(256, 500));
-    Mat grayImage, blurredImage;
-    cvtColor(img, grayImage, COLOR_BGR2GRAY);
+Mat loadAndPreprocessImage(const string& imagePath) {
+    Mat img = imread(imagePath);
+    Mat croppedImg = cropImage(img, 0.10, 0.10, 0.05, 0.05);
+    Mat resizedImg;
+    resize(croppedImg, resizedImg, Size(256, 500));
+    Mat grayImage;
+    cvtColor(resizedImg, grayImage, COLOR_BGR2GRAY);
+    Mat blurredImage;
     GaussianBlur(grayImage, blurredImage, Size(5, 5), 0);
+    return blurredImage;
+}
 
-    Mat gradientX, gradientY, gradientMagnitude;
+Mat computeGradients(const Mat& blurredImage) {
+    Mat gradientX, gradientY;
     Scharr(blurredImage, gradientX, CV_64F, 1, 0);
     Scharr(blurredImage, gradientY, CV_64F, 0, 1);
+    Mat gradientMagnitude;
     magnitude(gradientX, gradientY, gradientMagnitude);
+    return gradientMagnitude;
+}
 
-    int initialThreshold = 50;
-    int initialMinAreaThreshold = 200;
-    int numRectangles = 0;
-    int minRequiredRectangles = 7;
-    int minRequiredArea = 250;
-
-    std::vector<Point> prevTextPositions;
-
-    while (numRectangles < minRequiredRectangles) {
-        int threshold = initialThreshold;
-        int minAreaThreshold = initialMinAreaThreshold;
-        Mat highContrastAreas = gradientMagnitude > threshold;
-        std::vector<std::vector<Point>> contours;
-        findContours(highContrastAreas.clone(), contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-
-        std::vector<Rect> rectangles;
-        for (auto& contour : contours) {
-            double area = contourArea(contour);
-            if (area > minAreaThreshold) {
-                Rect rect = boundingRect(contour);
-                rectangles.push_back(rect);
-            }
+vector<Rect> findContours(const Mat& gradientMagnitude, double thresh, double minAreaThreshold) {
+    Mat highContrastAreas;
+    threshold(gradientMagnitude, highContrastAreas, thresh, 255, THRESH_BINARY);
+    highContrastAreas.convertTo(highContrastAreas, CV_8U);
+    vector<vector<Point>> contours;
+    findContours(highContrastAreas, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+    vector<Rect> rectangles;
+    for (const auto& contour : contours) {
+        double area = contourArea(contour);
+        if (area > minAreaThreshold) {
+            Rect boundingBox = boundingRect(contour);
+            rectangles.push_back(boundingBox);
         }
+    }
+    return rectangles;
+}
 
-        // Non-maximum suppression
-        std::vector<int> pick;
-        std::vector<int> x1, y1, x2, y2, area;
-        for (const auto& rect : rectangles) {
-            x1.push_back(rect.x);
-            y1.push_back(rect.y);
-            x2.push_back(rect.x + rect.width);
-            y2.push_back(rect.y + rect.height);
-            area.push_back(rect.width * rect.height);
-        }
-
-        std::vector<int> idxs(area.size());
-        std::iota(idxs.begin(), idxs.end(), 0);
-
-        sort(idxs.begin(), idxs.end(), [&](int i, int j) {
-            return y2[i] > y2[j];
-        });
-
-        while (!idxs.empty()) {
-            int last = idxs.size() - 1;
-            int i = idxs[last];
-            pick.push_back(i);
-            std::vector<int> suppress = {last};
-            for (int pos = 0; pos < last; pos++) {
-                int j = idxs[pos];
-                int xx1 = max(x1[i], x1[j]);
-                int yy1 = max(y1[i], y1[j]);
-                int xx2 = min(x2[i], x2[j]);
-                int yy2 = min(y2[i], y2[j]);
-                int w = max(0, xx2 - xx1 + 1);
-                int h = max(0, yy2 - yy1 + 1);
-                double overlap = static_cast<double>(w * h) / area[j];
-
-                if (overlap > 0.2) {
-                    suppress.push_back(pos);
-                }
-            }
-            idxs.erase(idxs.begin() + suppress.back());
-            suppress.pop_back();
-        }
-
-        for (int i : pick) {
-            int x = rectangles[i].x;
-            int y = rectangles[i].y;
-            int x2 = rectangles[i].x + rectangles[i].width;
-            int y2 = rectangles[i].y + rectangles[i].height;
-            int centerX = (x + x2) / 2;
-            int centerY = (y + y2) / 2;
-
-            bool overlapDetected = any_of(prevTextPositions.begin(), prevTextPositions.end(), [&](const Point& prev) {
-                return abs(prev.x - centerX) < 5 && abs(prev.y - centerY) < 5;
-            });
-
-            if (!overlapDetected) {
-                circle(img, Point(centerX, centerY), 5, Scalar(0, 0, 255), -1);
-
-                double yNormalized = 1.0 - static_cast<double>(centerY) / 500;
-
-                std::stringstream ss;
-                ss << std::fixed << std::setprecision(2) << yNormalized;
-                String text = ss.str();
-
-                int baseline = 0;
-                Size textSize = getTextSize(text, FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseline);
-                Point textOrigin(x + (rectangles[i].width - textSize.width) / 2, y - baseline);
-
-                overlapDetected = any_of(prevTextPositions.begin(), prevTextPositions.end(), [&](const Point& prev) {
-                    return abs(prev.x - textOrigin.x) < textSize.width && abs(prev.y - textOrigin.y) < textSize.height;
-                });
-
-                if (!overlapDetected) {
-                    putText(img, text, textOrigin, FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 0, 0));
-                    prevTextPositions.push_back(textOrigin);
-                }
-            }
-        }
-        numRectangles = pick.size();
-        initialMinAreaThreshold -= 10;
+vector<Rect> nonMaxSuppression(const vector<Rect>& rectangles, double overlapThresh) {
+    if (rectangles.empty()) {
+        return {};
     }
 
-    imwrite(path, img);
+    vector<Rect> pick;
+    vector<int> idxs(rectangles.size());
+    iota(idxs.begin(), idxs.end(), 0);
+    sort(idxs.begin(), idxs.end(), [&](int i1, int i2) {
+        return rectangles[i1].br().y < rectangles[i2].br().y;
+    });
+
+    while (!idxs.empty()) {
+        int last = idxs.size() - 1;
+        int i = idxs[last];
+        pick.push_back(rectangles[i]);
+        vector<int> suppress;
+        suppress.push_back(last);
+
+        for (int pos = 0; pos < last; ++pos) {
+            int j = idxs[pos];
+            int xx1 = max(rectangles[i].x, rectangles[j].x);
+            int yy1 = max(rectangles[i].y, rectangles[j].y);
+            int xx2 = min(rectangles[i].br().x, rectangles[j].br().x);
+            int yy2 = min(rectangles[i].br().y, rectangles[j].br().y);
+            int w = max(0, xx2 - xx1 + 1);
+            int h = max(0, yy2 - yy1 + 1);
+            double overlap = (w * h) / static_cast<double>(rectangles[j].area());
+
+            if (overlap > overlapThresh) {
+                suppress.push_back(pos);
+            }
+        }
+
+        for (int pos = suppress.size() - 1; pos >= 0; --pos) {
+            idxs.erase(idxs.begin() + suppress[pos]);
+        }
+    }
+    return pick;
+}
+
+void drawText(Mat& image, const Rect& rect, double yNormalized) {
+    string text = to_string(yNormalized).substr(0, 4);
+    int baseline = 0;
+    int font = FONT_HERSHEY_SIMPLEX;
+    double scale = 0.5;
+    int thickness = 1;
+    Size textSize = getTextSize(text, font, scale, thickness, &baseline);
+    int textX = rect.x + (rect.width - textSize.width) / 2;
+    int textY = rect.y - textSize.height - 2;
+    putText(image, text, Point(textX, textY), font, scale, Scalar(255, 0, 0), thickness);
+}
+
+void drawRectangles(Mat& image, const vector<Rect>& rectangles, double minRequiredArea, double maxAspectRatio) {
+    for (const auto& rect : rectangles) {
+        double aspectRatio = static_cast<double>(rect.width) / rect.height;
+        double area = rect.width * rect.height;
+        if (aspectRatio <= maxAspectRatio && area > minRequiredArea) {
+            rectangle(image, rect, Scalar(0, 255, 0), 2);
+            int centerX = rect.x + rect.width / 2;
+            int centerY = rect.y + rect.height / 2;
+            circle(image, Point(centerX, centerY), 1, Scalar(0, 0, 255), -1);
+            double yNormalized = 1.0 - static_cast<double>(centerY) / 500.0;
+            drawText(image, rect, yNormalized);
+        }
+    }
+}
+
+bool detect_contour_tlc(char *imagePath) {
+    Mat blurredImage = loadAndPreprocessImage(imagePath);
+    Mat gradientMagnitude = computeGradients(blurredImage);
+
+    double initialThreshold = 50;
+    double initialMinAreaThreshold = 200;
+    int minRequiredRectangles = 7;
+    double minRequiredArea = 250;
+    double maxAspectRatio = 3;
+
+    vector<Rect> rectangles;
+    int numRectangles = 0;
+    while (numRectangles < minRequiredRectangles) {
+        rectangles = findContours(gradientMagnitude, initialThreshold, initialMinAreaThreshold);
+        rectangles = nonMaxSuppression(rectangles, 0.2);
+        numRectangles = rectangles.size();
+        initialMinAreaThreshold -= 100;
+    }
+
+    Mat img = imread(imagePath);
+    Mat croppedImg = cropImage(img, 0.10, 0.10, 0.05, 0.05);
+    Mat resizedImg;
+    resize(croppedImg, resizedImg, Size(256, 500));
+
+    drawRectangles(resizedImg, rectangles, minRequiredArea, maxAspectRatio);
+    imwrite(imagePath, resizedImg);
     return true;
 }
