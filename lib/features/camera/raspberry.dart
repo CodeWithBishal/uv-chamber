@@ -16,7 +16,7 @@ class _RaspberryVideoState extends State<RaspberryVideo> {
   void initState() {
     super.initState();
     _controller = VideoPlayerController.network(
-      "http://192.168.197.125:5000/video_feed",
+      "http://10.42.0.1:5000/video_feed/",
     )..initialize().then((_) {
         setState(() {});
         _controller.play();
@@ -38,7 +38,7 @@ class _RaspberryVideoState extends State<RaspberryVideo> {
                 aspectRatio: _controller.value.aspectRatio,
                 child: VideoPlayer(_controller),
               )
-            : CircularProgressIndicator(),
+            : const CircularProgressIndicator(),
       ),
     );
   }

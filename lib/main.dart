@@ -11,17 +11,17 @@ Future main() async {
   ));
   WidgetsFlutterBinding.ensureInitialized();
 
-  final path = Directory("/data/data/com.example.chamber/images");
-  if ((await path.exists())) {
-  } else {
-    await path.create();
-  }
+  // final path = Directory("/data/data/com.example.chamber/images");
+  // if ((await path.exists())) {
+  // } else {
+  //   await path.create();
+  // }
 
-  final path2 = Directory("/data/data/com.example.chamber/original");
-  if ((await path2.exists())) {
-  } else {
-    await path2.create();
-  }
+  // final path2 = Directory("/data/data/com.example.chamber/original");
+  // if ((await path2.exists())) {
+  // } else {
+  //   await path2.create();
+  // }
 
   // var status = await Permission.location.isGranted;
   // if (status) {
