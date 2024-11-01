@@ -44,6 +44,12 @@ class _SavedImagesState extends State<SavedImages> {
     _loadImages();
   }
 
+  Future<XFile?> _pickImage() async {
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    return pickedFile;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,9 +89,7 @@ class _SavedImagesState extends State<SavedImages> {
               ),
               GestureDetector(
                 onTap: () async {
-                  XFile? file = await ImagePicker().pickImage(
-                    source: ImageSource.gallery,
-                  );
+                  XFile? file = await _pickImage();
                   if (file != null) {
                     if (!context.mounted) return;
                     Navigator.push(

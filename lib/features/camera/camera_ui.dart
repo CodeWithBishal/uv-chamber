@@ -375,8 +375,8 @@ class _CameraPageState extends State<CameraPage>
         action: SnackBarAction(
           label: "Yes",
           onPressed: () async {
-            final ImagePicker picker = ImagePicker();
-            final XFile? photo = await picker
+            final ImagePicker _picker = ImagePicker();
+            final XFile? photo = await _picker
                 .pickImage(
               source: ImageSource.camera,
             )

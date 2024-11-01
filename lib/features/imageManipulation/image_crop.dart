@@ -61,7 +61,7 @@ class _ImageProcessingState extends State<ImageProcessing> {
     );
     final autoCroppedFile = File(savePath);
     if (!mounted) return;
-    if (!cropped || !autoCroppedFile.existsSync() && mounted) {
+    if (!cropped || !autoCroppedFile.existsSync()) {
       Navigator.pop(context);
     } else {
       calculateTLC(CroppedFile(savePath));
@@ -253,8 +253,8 @@ class _ImageProcessingState extends State<ImageProcessing> {
                   LoadingAnimationWidget.threeArchedCircle(
                       color: Colors.black87, size: 36),
                   const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
+                    padding: const EdgeInsets.all(8.0),
+                    child: const Text(
                       "Processing Image...",
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.black),
