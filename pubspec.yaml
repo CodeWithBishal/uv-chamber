@@ -56,20 +56,16 @@ dependencies:
   #   git:
   #     url: https://github.com/codewithbishal/flutter-simple-edge-detection
   #     ref: 2dae43914e40f6b8b2905d814a197b15de02b514
-  edge_detection:
-    path: ../../GIT_Projects/edge_detection
+  # edge_detection:
+  #   path: ../../GIT_Projects/edge_detection
     # git:
     #   url: https://github.com/CodeWithBishal/edge_detection
     #   ref: 6aa350e5fccf5607508c0785087bf8a4159dcf13
   path: ^1.9.0
-  ffi: 2.1.2
+  # ffi: 2.1.2
   gal: ^2.3.0
-  # edge_detection: ^1.1.3
-
-
-
-
-
+  opencv_dart: ^1.3.1
+  cunning_document_scanner: ^1.2.3
 
 dev_dependencies:
   flutter_test:

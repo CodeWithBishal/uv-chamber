@@ -1,11 +1,8 @@
-import 'dart:ffi';
 import 'dart:io';
 // import 'dart:isolate';
 // import 'dart:typed_data';
 // import 'package:chamber/features/saved/saved_images.dart';
 // import 'package:flutter/cupertino.dart';
-
-import 'package:edge_detection/edge_detection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
@@ -14,7 +11,6 @@ import 'package:image_cropper/image_cropper.dart';
 // import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:ffi/ffi.dart';
 // import 'package:simple_edge_detection/edge_detection.dart';
 // import 'package:simple_edge_detection/edge_detection.dart';
 
@@ -28,9 +24,9 @@ class ImageProcessing extends StatefulWidget {
 class _ImageProcessingState extends State<ImageProcessing> {
   // late CroppedFile croppedFileOutput;
   Directory directory = Directory("/data/data/com.example.chamber/images");
-  final dylib = Platform.isAndroid
-      ? DynamicLibrary.open("libOpenCV_ffi.so")
-      : DynamicLibrary.process();
+  // final dylib = Platform.isAndroid
+  //     ? DynamicLibrary.open("libOpenCV_ffi.so")
+  //     : DynamicLibrary.process();
   File? _processedImage;
 
   @override
@@ -52,13 +48,17 @@ class _ImageProcessingState extends State<ImageProcessing> {
     }
     var savePath =
         "${path2.withoutExtension(imagePath)}_crop${path2.extension(imagePath)}";
-    bool cropped = await EdgeDetection.detectEdgeFromGallery(
-      File(imagePath).uri.toString(),
-      savePath,
-      androidCropTitle: 'Crop', // use custom localizations for android
-      androidCropBlackWhiteTitle: 'Black White',
-      androidCropReset: 'Reset',
-    );
+
+    // bool cropped = await EdgeDetection.detectEdgeFromGallery(
+    //   File(imagePath).uri.toString(),
+    //   savePath,
+    //   androidCropTitle: 'Crop', // use custom localizations for android
+    //   androidCropBlackWhiteTitle: 'Black White',
+    //   androidCropReset: 'Reset',
+    // );
+    //TODO
+    bool cropped = true;
+
     final autoCroppedFile = File(savePath);
     if (!mounted) return;
     if (!cropped || !autoCroppedFile.existsSync()) {
@@ -122,14 +122,16 @@ class _ImageProcessingState extends State<ImageProcessing> {
 
   void calculateTLC(CroppedFile croppedFile) {
     //ffi
-    final imagePath = croppedFile.path.toNativeUtf8();
-    final imageFfi = dylib.lookupFunction<Bool Function(Pointer<Utf8>),
-        bool Function(Pointer<Utf8>)>('detect_contour_tlc');
-    if (imageFfi(imagePath)) {
+    final imagePath = croppedFile.path;
+    var a = true;
+    // final imageFfi = dylib.lookupFunction<Bool Function(Pointer<Utf8>),
+    //     bool Function(Pointer<Utf8>)>('detect_contour_tlcc');
+    //TODO
+    if (a == true) {
       setState(() {
-        _processedImage = File(imagePath.toDartString());
+        _processedImage = File(imagePath);
       });
-      saveImage(imagePath.toDartString());
+      saveImage(imagePath);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

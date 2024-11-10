@@ -44,7 +44,7 @@ android {
         applicationId "com.example.chamber"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 23
+        minSdkVersion 24
         targetSdkVersion 34
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
@@ -59,21 +59,6 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig signingConfigs.debug
-        }
-    }
-
-    externalNativeBuild {
-        cmake {
-            path "CMakeLists.txt"
-        }
-    }
-
-    defaultConfig {
-        externalNativeBuild {
-            cmake {
-                cppFlags '-frtti -fexceptions -std=c++17'
-                arguments "-DANDROID_STL=c++_shared"
-            }
         }
     }
 }
