@@ -1,0 +1,3 @@
+/Users/bishaldas/GIT_Projects/uv-chamber/android/app/CMakeFiles/OpenCV_ffi.dir
+/Users/bishaldas/GIT_Projects/uv-chamber/android/app/CMakeFiles/edit_cache.dir
+/Users/bishaldas/GIT_Projects/uv-chamber/android/app/CMakeFiles/rebuild_cache.dir

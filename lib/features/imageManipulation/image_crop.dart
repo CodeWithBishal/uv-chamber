@@ -122,12 +122,19 @@ class _ImageProcessingState extends State<ImageProcessing> {
 
   void calculateTLC(CroppedFile croppedFile) {
     //ffi
+<<<<<<< Updated upstream
     final imagePath = croppedFile.path;
     var a = true;
     // final imageFfi = dylib.lookupFunction<Bool Function(Pointer<Utf8>),
     //     bool Function(Pointer<Utf8>)>('detect_contour_tlcc');
     //TODO
     if (a == true) {
+=======
+    final imagePath = croppedFile.path.toNativeUtf8();
+    final imageFfi = dylib.lookupFunction<Bool Function(Pointer<Utf8>),
+        bool Function(Pointer<Utf8>)>('detect_contour_tlcc');
+    if (imageFfi(imagePath)) {
+>>>>>>> Stashed changes
       setState(() {
         _processedImage = File(imagePath);
       });
